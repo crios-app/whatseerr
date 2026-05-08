@@ -13,6 +13,9 @@
 - 🔍 Search movies and TV shows from WhatsApp
 - 📺 Request media directly via chat messages
 - 🔔 Receive webhook notifications from Seerr
+- 📌 **Follow / unfollow** titles you don't want to request right now — get a DM the moment they're available
+- 📅 **Calendar** of upcoming episodes and releases for everything you follow
+- 🎬 **Library webhook** for Plex / Sonarr / Radarr — per-episode and per-movie notifications
 - 👥 User mapping (WhatsApp phone numbers to Seerr user IDs)
 - ⚡ Rate limiting and message queuing
 - 🎯 Support for 4K requests (optional)
@@ -105,6 +108,28 @@ http://YOUR_HOST_IP:3006/seerr
 
 **Types:** Select notification types you want to receive
 
+### 4. Configure Library Webhook (Optional, for episode-level notifications)
+
+`/library` accepts Plex, Sonarr and Radarr webhook payloads so users who
+`follow` a title get a per-episode (TV) or per-movie (movie) DM the moment
+the file lands in your library — independently of Seerr's "available" event.
+
+**Webhook URL:**
+```
+http://YOUR_HOST_IP:3006/library
+```
+
+**Sonarr / Radarr** (Settings → Connect → Webhook):
+- **URL**: `http://YOUR_HOST_IP:3006/library`
+- **Method**: `POST`
+- **Triggers**: enable *On Import* / *On Upgrade* (both fire `Download` events). Leave *On Grab* off — it fires before the file is actually available.
+
+**Plex** (Settings → Webhooks; requires Plex Pass):
+- **URL**: `http://YOUR_HOST_IP:3006/library`
+
+**Authentication (recommended when exposing to the internet):**
+Set `webhook.library.token` in `config.json` (or the `WHATSEERR_LIBRARY_TOKEN` env var) and append `?token=YOUR_TOKEN` to the URL above. Whatseerr will reject unauthenticated requests once the token is configured.
+
 ## Usage
 
 Send a WhatsApp message to your WAHA-connected number:
@@ -122,6 +147,13 @@ The bot will:
 **Available Commands:**
 - `r <title>` or `request <title>` - Search and request media
 - `r4k <title>` or `request4k <title>` - Request in 4K quality (if enabled)
+- `follow <title>` (or `f <title>`) - Follow a movie or show without requesting it; you'll be notified when it / new episodes become available
+- `unfollow [<title>]` (or `uf`) - Stop following. Without an argument, lists everything you follow so you can pick one
+- `calendar` (or `cal`) - Shows upcoming episodes / releases for everything you follow
+- `subs` or `subscriptions` - List your active notifications
+- `help` - Show available commands
+
+> Tip: a `follow` is "sticky" — it survives the first availability notification, so you keep getting pinged about future seasons / sequels. An *automatic* subscription created by a `request` self-cleans once that media lands.
 
 ## Configuration Options
 
@@ -142,6 +174,8 @@ The bot will:
 - `webhook.requests.path`: Path for WAHA webhook (default: `/requests`)
 - `webhook.requests.port`: Webhook server port (default: 3006)
 - `webhook.seerr.path`: Path for Seerr webhook (default: `/seerr`)
+- `webhook.library.path`: Path for Plex/Sonarr/Radarr webhook (default: `/library`)
+- `webhook.library.token`: Optional shared secret. When set, callers must include `?token=...` (or env `WHATSEERR_LIBRARY_TOKEN`).
 
 ### Mappings
 - `userIdMappings`: Map phone numbers to Seerr user IDs
@@ -152,6 +186,9 @@ The bot will:
 - `command`: Comma-separated list of request command aliases
 - `command4k`: Comma-separated list of 4K request command aliases
 - `help4k`: Show 4K commands in help message (default: false)
+- `followCommand`: Aliases for `follow` (default: `follow,f`)
+- `unfollowCommand`: Aliases for `unfollow` (default: `unfollow,uf`)
+- `calendarCommand`: Aliases for `calendar` (default: `calendar,cal`)
 
 ## Viewing Logs
 

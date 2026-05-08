@@ -27,6 +27,11 @@
     },
     "seerr": {
       "path": "/seerr"
+    },
+    "//_library_comment": "Library webhook for Plex / Sonarr / Radarr. When set up, users following a movie or show receive a WhatsApp DM the moment a new episode or movie hits the library. Set 'token' to require a ?token=... query string for authentication (recommended when exposing this endpoint).",
+    "library": {
+      "path": "/library",
+      "token": ""
     }
   },
   "mappings": {
@@ -45,7 +50,13 @@
   "commands": {
     "command": "r,request,s,search",
     "command4k": "r4k,request4k",
-    "help4k": false
+    "help4k": false,
+    "//_follow_comment": "Comma-separated aliases for the follow command (subscribe to a title without creating a Seerr request).",
+    "followCommand": "follow,f",
+    "//_unfollow_comment": "Comma-separated aliases for the unfollow command.",
+    "unfollowCommand": "unfollow,uf",
+    "//_calendar_comment": "Comma-separated aliases for the calendar command (shows upcoming episodes / releases for followed media).",
+    "calendarCommand": "calendar,cal"
   },
   "cache": {
     "searchResultsTTL": 3600,
