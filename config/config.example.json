@@ -59,13 +59,16 @@
     "//_calendar_comment": "Comma-separated aliases for the calendar command (shows upcoming episodes / releases for followed media).",
     "calendarCommand": "calendar,cal"
   },
-  "//_patreon_comment": "Restricts the bot to Premium / Diamond Patreon supporters. Leave 'accessToken' empty to disable gating entirely. 'help' and admin users always bypass. Generate a Creator's Access Token at https://www.patreon.com/portal/registration/register-clients and paste it here. 'campaignId' is the numeric ID of your Patreon campaign (find it in the URL when editing your campaign). 'allowedTiers' is a case-insensitive list of tier titles that grant access. 'upgradeUrl' is included in the rejection message so non-supporters know where to go. 'refreshIntervalMinutes' controls how often we re-fetch the patron list.",
+  "//_patreon_comment": "Restricts the bot to Premium / Diamond Patreon supporters. Leave 'accessToken' empty to disable gating entirely. 'help' and 'link' always bypass; admin users bypass too. Generate a Creator's Access Token + OAuth client at https://www.patreon.com/portal/registration/register-clients. 'campaignId' is the numeric ID of your Patreon campaign. 'allowedTiers' is a case-insensitive list of tier titles that grant access. 'upgradeUrl' is shown in the rejection message. 'refreshIntervalMinutes' controls patron-list re-fetch cadence. The OAuth fields (clientId/clientSecret/redirectUri) enable the self-service `link` command: patrons send `link` to receive a one-time Patreon authorization URL; once they authorize, their phone is linked to their Patreon account automatically. The redirectUri must point at this bot's `/patreon/callback` and must be whitelisted in your Patreon API client's 'Redirect URIs' field.",
   "patreon": {
     "accessToken": "",
     "campaignId": "",
     "allowedTiers": ["Premium", "Diamond"],
     "upgradeUrl": "",
-    "refreshIntervalMinutes": 30
+    "refreshIntervalMinutes": 30,
+    "clientId": "",
+    "clientSecret": "",
+    "redirectUri": ""
   },
   "cache": {
     "searchResultsTTL": 3600,

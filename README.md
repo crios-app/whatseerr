@@ -133,18 +133,27 @@ Set `webhook.library.token` in `config.json` (or the `WHATSEERR_LIBRARY_TOKEN` e
 
 ### 5. Configure Patreon Tier Gating (Optional)
 
-Restricts the bot to active **Premium** and **Diamond** Patreon supporters. Admin users (`"admin": true` in `userIdMappings`) bypass the gate, and `help` is always answered so non-supporters can discover the requirement. Leave `patreon.accessToken` empty to keep the bot open to everyone in `userIdMappings`.
+Restricts the bot to active **Premium** and **Diamond** Patreon supporters. Admins (`"admin": true` in `userIdMappings`) bypass the gate, and the `help` and `link` commands are always answered so non-supporters can discover the requirement and connect their account. Leave `patreon.accessToken` empty to keep the bot open to everyone in `userIdMappings`.
 
-**1. Create a Patreon API client and get a Creator's Access Token**
+**1. Register a Patreon API client (gets you both the access token AND the OAuth client)**
 
 - Go to https://www.patreon.com/portal/registration/register-clients while signed in to your creator account
-- Click **Create Client** — fill in any name / website (the redirect URI doesn't matter for server-to-server use)
-- Copy the **Creator's Access Token** that's shown on the client page (this is **not** an OAuth bearer token; it's a long-lived token tied to your account)
+- Click **Create Client**. Fill in:
+  - **Redirect URIs**: `https://YOUR_PUBLIC_HOST:3006/patreon/callback` — this must be reachable from the patron's browser when they click the link URL. If you're behind a tunnel (Cloudflare, ngrok, etc.) use that hostname here.
+  - Other fields (icon, name, website) can be anything
+- After saving, the client page shows three values you'll need:
+  - **Creator's Access Token** — long-lived, used to read your campaign's patron list
+  - **Client ID** — used by the OAuth `link` flow
+  - **Client Secret** — used by the OAuth `link` flow
 
 **2. Find your campaign ID**
 
-- Visit https://www.patreon.com/api/oauth2/v2/campaigns?fields[campaign]=patron_count with the access token (e.g. `curl -H "Authorization: Bearer YOUR_TOKEN" ...`)
-- The numeric `id` of the returned campaign is your `campaignId`
+```bash
+curl -H "Authorization: Bearer YOUR_CREATOR_ACCESS_TOKEN" \
+  "https://www.patreon.com/api/oauth2/v2/campaigns"
+```
+
+The numeric `data[].id` is your `campaignId`.
 
 **3. Configure**
 
@@ -154,29 +163,38 @@ Restricts the bot to active **Premium** and **Diamond** Patreon supporters. Admi
   "campaignId": "12345678",
   "allowedTiers": ["Premium", "Diamond"],     // case-insensitive Patreon tier titles
   "upgradeUrl": "https://www.patreon.com/your-creator-page",
-  "refreshIntervalMinutes": 30
+  "refreshIntervalMinutes": 30,
+
+  // Required for the self-service `link` command. Omit / leave blank if
+  // you'd rather link patrons manually (set patreonEmail or patreonUserId
+  // on each userIdMappings entry yourself).
+  "clientId": "PASTE_CLIENT_ID",
+  "clientSecret": "PASTE_CLIENT_SECRET",
+  "redirectUri": "https://YOUR_PUBLIC_HOST:3006/patreon/callback"
 }
 ```
 
-**4. Link each WhatsApp number to a Patreon email**
+**4. How patrons link their WhatsApp number**
 
-For each entry in `userIdMappings`, add a `patreonEmail` field with the email the patron uses on Patreon:
+Patrons authorise themselves over WhatsApp — you don't have to keep emails in sync by hand:
 
-```jsonc
-"1234567890": {
-  "userId": 1,
-  "username": "Alice",
-  "patreonEmail": "alice@example.com"
-}
-```
+1. Patron sends `link` to the bot.
+2. Bot replies with a one-time Patreon authorization URL.
+3. Patron opens it, clicks **Allow**.
+4. Patreon redirects to Whatseerr's `/patreon/callback`, which writes
+   `patreonUserId` (and `patreonEmail`) onto that phone's `userIdMappings`
+   entry on disk.
+5. Patron immediately receives a WhatsApp DM confirming the link and their
+   current tier.
 
-If `patreonEmail` is omitted, the bot falls back to the email it knows from Seerr (auto-populated in `emailMappings` from Seerr webhooks). When neither is available, the user is treated as "no Patreon link" and blocked.
+The patron's WhatsApp phone number must already exist in `userIdMappings` (admins add the phone + Seerr `userId` + display name). If they're missing, the callback responds with "contact the admin." If you'd rather skip the OAuth flow entirely, set `patreonEmail` (or `patreonUserId`) manually on each entry; the gate will use that.
 
 **Behaviour:**
 - The bot fetches the patron list at startup and refreshes it every `refreshIntervalMinutes`.
 - If the *first* refresh fails (bad token, network down), the gate **fails closed** — only admins can use the bot until a refresh succeeds.
 - If a *later* refresh fails, the previous successful snapshot keeps working and we log the error.
 - Tier matching is case-insensitive against the patron's `currently_entitled_tiers` titles. Free followers don't count.
+- `help` and `link` always pass through the gate. Everything else (request, follow, calendar, etc.) requires a matching tier.
 
 ## Usage
 
@@ -236,6 +254,7 @@ The bot will:
 - `patreon.allowedTiers`: Array of tier titles that grant access (default `["Premium", "Diamond"]`, case-insensitive).
 - `patreon.upgradeUrl`: Optional URL included in the rejection message for non-supporters.
 - `patreon.refreshIntervalMinutes`: How often to re-fetch the patron list (default 30).
+- `patreon.clientId` / `clientSecret` / `redirectUri`: OAuth client info used by the self-service `link` command. The redirect URI must point at this bot's `/patreon/callback` and be whitelisted in your Patreon API client. Leave blank to disable the `link` command and require manual `patreonEmail` / `patreonUserId` entries instead.
 
 ### Commands
 - `command`: Comma-separated list of request command aliases
