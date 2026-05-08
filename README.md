@@ -16,6 +16,7 @@
 - 📌 **Follow / unfollow** titles you don't want to request right now — get a DM the moment they're available
 - 📅 **Calendar** of upcoming episodes and releases for everything you follow
 - 🎬 **Library webhook** for Plex / Sonarr / Radarr — per-episode and per-movie notifications
+- 💎 **Patreon tier gating** — restrict the bot to Premium / Diamond supporters via the Patreon API
 - 👥 User mapping (WhatsApp phone numbers to Seerr user IDs)
 - ⚡ Rate limiting and message queuing
 - 🎯 Support for 4K requests (optional)
@@ -130,6 +131,53 @@ http://YOUR_HOST_IP:3006/library
 **Authentication (recommended when exposing to the internet):**
 Set `webhook.library.token` in `config.json` (or the `WHATSEERR_LIBRARY_TOKEN` env var) and append `?token=YOUR_TOKEN` to the URL above. Whatseerr will reject unauthenticated requests once the token is configured.
 
+### 5. Configure Patreon Tier Gating (Optional)
+
+Restricts the bot to active **Premium** and **Diamond** Patreon supporters. Admin users (`"admin": true` in `userIdMappings`) bypass the gate, and `help` is always answered so non-supporters can discover the requirement. Leave `patreon.accessToken` empty to keep the bot open to everyone in `userIdMappings`.
+
+**1. Create a Patreon API client and get a Creator's Access Token**
+
+- Go to https://www.patreon.com/portal/registration/register-clients while signed in to your creator account
+- Click **Create Client** — fill in any name / website (the redirect URI doesn't matter for server-to-server use)
+- Copy the **Creator's Access Token** that's shown on the client page (this is **not** an OAuth bearer token; it's a long-lived token tied to your account)
+
+**2. Find your campaign ID**
+
+- Visit https://www.patreon.com/api/oauth2/v2/campaigns?fields[campaign]=patron_count with the access token (e.g. `curl -H "Authorization: Bearer YOUR_TOKEN" ...`)
+- The numeric `id` of the returned campaign is your `campaignId`
+
+**3. Configure**
+
+```jsonc
+"patreon": {
+  "accessToken": "PASTE_YOUR_CREATOR_ACCESS_TOKEN",
+  "campaignId": "12345678",
+  "allowedTiers": ["Premium", "Diamond"],     // case-insensitive Patreon tier titles
+  "upgradeUrl": "https://www.patreon.com/your-creator-page",
+  "refreshIntervalMinutes": 30
+}
+```
+
+**4. Link each WhatsApp number to a Patreon email**
+
+For each entry in `userIdMappings`, add a `patreonEmail` field with the email the patron uses on Patreon:
+
+```jsonc
+"1234567890": {
+  "userId": 1,
+  "username": "Alice",
+  "patreonEmail": "alice@example.com"
+}
+```
+
+If `patreonEmail` is omitted, the bot falls back to the email it knows from Seerr (auto-populated in `emailMappings` from Seerr webhooks). When neither is available, the user is treated as "no Patreon link" and blocked.
+
+**Behaviour:**
+- The bot fetches the patron list at startup and refreshes it every `refreshIntervalMinutes`.
+- If the *first* refresh fails (bad token, network down), the gate **fails closed** — only admins can use the bot until a refresh succeeds.
+- If a *later* refresh fails, the previous successful snapshot keeps working and we log the error.
+- Tier matching is case-insensitive against the patron's `currently_entitled_tiers` titles. Free followers don't count.
+
 ## Usage
 
 Send a WhatsApp message to your WAHA-connected number:
@@ -178,9 +226,16 @@ The bot will:
 - `webhook.library.token`: Optional shared secret. When set, callers must include `?token=...` (or env `WHATSEERR_LIBRARY_TOKEN`).
 
 ### Mappings
-- `userIdMappings`: Map phone numbers to Seerr user IDs
-- `emailMappings`: Auto-populated from webhook notifications
-- `lidMappings`: Auto-populated for WhatsApp LID format support
+- `userIdMappings`: Map phone numbers to Seerr user IDs. Add `"patreonEmail"` to link the WhatsApp number to a Patreon account for tier gating.
+- `emailMappings`: Auto-populated from webhook notifications. Used as the Patreon-email fallback when `patreonEmail` is not set.
+- `lidMappings`: Auto-populated for WhatsApp LID format support.
+
+### Patreon
+- `patreon.accessToken`: Creator's Access Token from the Patreon API portal. Leave empty to disable tier gating.
+- `patreon.campaignId`: Numeric ID of your Patreon campaign.
+- `patreon.allowedTiers`: Array of tier titles that grant access (default `["Premium", "Diamond"]`, case-insensitive).
+- `patreon.upgradeUrl`: Optional URL included in the rejection message for non-supporters.
+- `patreon.refreshIntervalMinutes`: How often to re-fetch the patron list (default 30).
 
 ### Commands
 - `command`: Comma-separated list of request command aliases

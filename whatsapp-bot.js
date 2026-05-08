@@ -14,6 +14,7 @@ import { createServer } from './lib/server.js';
 import { createStateManager } from './lib/state/cache-state.js';
 import { createQueueManager, getQueueManager } from './lib/queue/message-queue.js';
 import { createSubscriptionManager } from './lib/subscriptions/subscription-manager.js';
+import { initPatreonTierCache, getPatreonTierCache } from './lib/patreon/tier-cache.js';
 import { createCommandRegistry, getCommandRegistry } from './lib/commands/index.js';
 import { createMiddlewarePipeline } from './lib/middleware/index.js';
 import { sendMessage } from './lib/waha-client.js';
@@ -143,7 +144,11 @@ async function main() {
   createStateManager(cfg);
   createQueueManager(cfg);
   createSubscriptionManager(logger, cfg);
-  
+
+  // Run the first Patreon refresh synchronously so the gate is correct from
+  // the moment we start accepting traffic.
+  await initPatreonTierCache(cfg, logger);
+
   const jellyseerrClient = createHttpClient(cfg.jellyseerr.apiBaseUrl);
   const wahaClient = createWahaClient(cfg.waha.baseUrl);
 
@@ -162,6 +167,8 @@ async function main() {
       await server.close();
       const queueManager = getQueueManager();
       queueManager.destroy(); // Clean up queue manager and timers
+      const patreonCache = getPatreonTierCache();
+      patreonCache?.stop();
       logger?.info('✅ Server closed.');
       logger?.info('✅ Queue manager cleaned up.');
       process.exit(0);

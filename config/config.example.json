@@ -35,11 +35,12 @@
     }
   },
   "mappings": {
-    "//_userIdMappings_comment": "Map WAHA phone numbers to Jellyseerr user IDs. Use phone number without @c.us suffix as key. Each entry must have 'userId' (number) and 'username' (string) properties. LID format (@lid) is automatically resolved to phone number for lookup.",
+    "//_userIdMappings_comment": "Map WAHA phone numbers to Jellyseerr user IDs. Use phone number without @c.us suffix as key. Each entry must have 'userId' (number) and 'username' (string) properties. LID format (@lid) is automatically resolved to phone number for lookup. Add 'patreonEmail' (string) to link this WhatsApp number to a Patreon account for tier gating; if omitted, the bot falls back to the email it knows from Seerr (emailMappings).",
     "userIdMappings": {
       "1234567890": {
         "userId": 1,
-        "username": ""
+        "username": "",
+        "patreonEmail": ""
       }
     },
     "//_emailMappings_comment": "Map email addresses to Jellyseerr user IDs. Automatically populated when webhook notifications are received.",
@@ -57,6 +58,14 @@
     "unfollowCommand": "unfollow,uf",
     "//_calendar_comment": "Comma-separated aliases for the calendar command (shows upcoming episodes / releases for followed media).",
     "calendarCommand": "calendar,cal"
+  },
+  "//_patreon_comment": "Restricts the bot to Premium / Diamond Patreon supporters. Leave 'accessToken' empty to disable gating entirely. 'help' and admin users always bypass. Generate a Creator's Access Token at https://www.patreon.com/portal/registration/register-clients and paste it here. 'campaignId' is the numeric ID of your Patreon campaign (find it in the URL when editing your campaign). 'allowedTiers' is a case-insensitive list of tier titles that grant access. 'upgradeUrl' is included in the rejection message so non-supporters know where to go. 'refreshIntervalMinutes' controls how often we re-fetch the patron list.",
+  "patreon": {
+    "accessToken": "",
+    "campaignId": "",
+    "allowedTiers": ["Premium", "Diamond"],
+    "upgradeUrl": "",
+    "refreshIntervalMinutes": 30
   },
   "cache": {
     "searchResultsTTL": 3600,
