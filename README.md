@@ -153,7 +153,7 @@ The bot will:
 - `subs` or `subscriptions` - List your active notifications
 - `help` - Show available commands
 
-> Tip: a `follow` is "sticky" — it survives the first availability notification, so you keep getting pinged about future seasons / sequels. An *automatic* subscription created by a `request` self-cleans once that media lands.
+> `request` and `follow` are independent: requesting only queues the title in Seerr and does **not** subscribe you to availability notifications. Use `follow` (or `f`) to receive a DM when the title (or new episodes) drop. The original requester still gets Seerr's own notifications via the Seerr webhook.
 
 ## Configuration Options
 
